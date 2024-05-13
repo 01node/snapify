@@ -1,6 +1,20 @@
 import svgToDataUri from "mini-svg-data-uri";
 import type { Config } from "tailwindcss";
 
+import flattenColorPalette from "tailwindcss/lib/util/flattenColorPalette";
+
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+function addVariablesForColors({ addBase, theme }: any) {
+	const allColors = flattenColorPalette(theme("colors"));
+	const newVars = Object.fromEntries(
+		Object.entries(allColors).map(([key, val]) => [`--${key}`, val]),
+	);
+
+	addBase({
+		":root": newVars,
+	});
+}
+
 const config = {
 	darkMode: ["class"],
 	content: [
@@ -77,6 +91,7 @@ const config = {
 	},
 	plugins: [
 		require("tailwindcss-animate"),
+		addVariablesForColors,
 		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 		({ matchUtilities, theme }: any) => {
 			matchUtilities(
@@ -87,6 +102,10 @@ const config = {
 							`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="16" height="16" fill="none"><circle fill="${value}" id="pattern-circle" cx="10" cy="10" r="2.5"></circle></svg>`,
 						)}")`,
 					}),
+				},
+				{
+					values: flattenColorPalette(theme("backgroundColor")),
+					type: "color",
 				},
 			);
 		},

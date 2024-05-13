@@ -1,0 +1,11 @@
+{
+    "index": {
+        "title": "01Node",
+        "type": "page",
+        "href": "https://01node.com",
+        "newWindow": true
+    },
+    "about": "About Snapify",
+    "mainnet": "Mainnet",
+    "testnet": "Testnet"
+}

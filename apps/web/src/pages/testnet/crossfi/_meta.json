@@ -2,6 +2,6 @@
     "index": "Network details",
     "endpoints": "Public Endpoints",
     "installation": "Installation Guide",
-    "state-sync": "State-Sync",
+    "sync": "Sync",
     "useful-commands": "Useful Commands"
 }

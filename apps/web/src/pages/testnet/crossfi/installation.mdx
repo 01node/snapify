@@ -4,14 +4,14 @@ Minimum Hardware Requirements 4x CPUs; the faster clock speed the better 8GB RAM
 ## Setup Validator Name
 
 ```env
-MONIKER="YOUR_MONIKER_GOES_HERE"
+MONIKER="YOUR_MONIKER_HERE"
 ```
 
 ## Install dependencies
 
 ```bash
 sudo apt update
-sudo apt-get install git curl build-essential make jq gcc snapd chrony lz4 tmux unzip bc -y
+sudo apt install -y curl git jq lz4 build-essential
 ```
 
 ### Install Go
@@ -20,14 +20,10 @@ sudo apt-get install git curl build-essential make jq gcc snapd chrony lz4 tmux 
 rm -rf $HOME/go
 sudo rm -rf /usr/local/go
 cd $HOME
-curl https://dl.google.com/go/go1.20.5.linux-amd64.tar.gz | sudo tar -C/usr/local -zxvf -
-cat <<'EOF' >>$HOME/.profile
-export GOROOT=/usr/local/go
-export GOPATH=$HOME/go
-export GO111MODULE=on
-export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin
-EOF
-source $HOME/.profile
+sudo rm -rf /usr/local/go
+curl -L https://go.dev/dl/go1.21.6.linux-amd64.tar.gz | sudo tar -xzf - -C /usr/local
+echo 'export PATH=$PATH:/usr/local/go/bin:$HOME/go/bin' >> $HOME/.bash_profile
+source .bash_profile
 go version
 ```
 
@@ -47,15 +43,46 @@ rm -rf crossfi-node_0.3.0-prebuild3_linux_amd64.tar.gz
 ## Initialize Node
 
 ```bash
-crossfid config chain-id crossfi-evm-testnet-1
+crossfid init "YOUR_MONIKER" --chain-id crossfi-evm-testnet-1
 ```
 
 ### Download genesis and addrbook
 
 ```bash
-curl -Ls https://snapshots.aknodes.net/snapshots/crossfi/genesis.json > $HOME/.mineplex-chain/config/genesis.json
+curl -Ls https://snapshots-testnet.01node.com/crossfi-testnet/genesis.json > $HOME/.mineplex-chain/config/genesis.json
 
-curl -Ls https://snapshots.aknodes.net/snapshots/crossfi/addrbook.json > $HOME/.mineplex-chain/config/addrbook.json
+curl -Ls https://snapshots-testnet.01node.com/crossfi-testnet/addrbook.json > $HOME/.mineplex-chain/config/addrbook.json
+```
+
+### Set the minimum gas price
+
+```bash
+sed -i 's|minimum-gas-prices =.*|minimum-gas-prices = "10000000000000mpx"|g' $HOME/.mineplex-chain/config/app.toml
+```
+
+### Set up seed
+
+```bash
+sed -i -e 's|^seeds *=.*|seeds = "89752fa7945a06e972d7d860222a5eeaeab5c357@128.140.70.97:26656,dd83e3c7c4e783f8a46dbb010ec8853135d29df0@crossfi-testnet-seed.itrocket.net:36656"|' $HOME/.mineplex-chain/config/config.toml
+```
+
+### Disable Indexing
+
+```bash
+sed -i -e "s/^indexer *=.*/indexer = \"null\"/" $HOME/.mineplex-chain/config/config.toml
+```
+
+### Config pruning
+
+```bash
+pruning="custom" && \
+pruning_keep_recent="100" && \
+pruning_keep_every="0" && \
+pruning_interval="10" && \
+sed -i -e "s/^pruning *=.*/pruning = \"$pruning\"/" ~/.mineplex-chain/config/app.toml && \
+sed -i -e "s/^pruning-keep-recent *=.*/pruning-keep-recent = \"$pruning_keep_recent\"/" ~/.mineplex-chain/config/app.toml && \
+sed -i -e "s/^pruning-keep-every *=.*/pruning-keep-every = \"$pruning_keep_every\"/" ~/.mineplex-chain/config/app.toml && \
+sed -i -e "s/^pruning-interval *=.*/pruning-interval = \"$pruning_interval\"/" ~/.mineplex-chain/config/app.toml
 ```
 
 ### Create systemd service
@@ -78,14 +105,11 @@ WantedBy=multi-user.target
 EOF
 ```
 
-### Download Snapshot
-```bash
-crossfid tendermint unsafe-reset-all --home $HOME/.mineplex-chain --keep-addr-book 
-curl https://snapshots.aknodes.net/snapshots/crossfi/snapshot-crossfi.AKNodes.lz4 | lz4 -dc - | tar -xf - -C $HOME/.mineplex-chain
-```
-
 ### Start the node
+
 ```bash
-sudo systemctl restart crossfid
-journalctl -u crossfid -f
+sudo systemctl daemon-reload
+sudo systemctl enable crossfid.service
+sudo systemctl start crossfid.service
+journalctl -f -o cat -u crossfid
 ```
